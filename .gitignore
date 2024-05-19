@@ -6,3 +6,4 @@
 /CPLD_J/db
 /CPLD_J/incremental_db
 /CPLD_J/src/*.bak
+/Z80sdcc/build

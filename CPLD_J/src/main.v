@@ -94,36 +94,61 @@ module epm3512_igp_orig (
 );
 
 
-//wire [16:0]va = VA;
-
-assign MA[18:17] = 2'b0;
-
 assign ROM_A15 = 1'b0;
 assign ROM_A16 = 1'b0;
 assign ROM_A17 = 1'b0;
 assign ROM_A18 = 1'b0;
 
-assign CPU_BUSRQ = 1'b1;
-assign CPU_WAIT = 1'b1;
-assign CPU_NMI = 1'b1;
+assign CPU_BUSRQ 	= 1'b1;
+assign CPU_WAIT 	= 1'b1;
+assign CPU_NMI 	= 1'b1;
 
- /********** ext RAM W24257AK-20 32kb ************/ 
-wire ext_ram_cs =  cpu_dis?|(CPU_MREQ | A[15] | ~A[14]):(1'b0);// | (A == 16'h4005) ;
-wire ext_ram_rd =  cpu_dis?(CPU_RD | ext_ram_cs):(1'b0);
-wire ext_ram_wr =  CPU_WR | ext_ram_cs;
-wire cpu_dis = ~screen_read;
+//
+wire [1:0] cpu_a15a14 = {A[15], A[14]};
+wire n_cpu_a_0000_3fff = ~(cpu_a15a14 == 2'b00);
+wire n_cpu_a_4000_7fff = ~(cpu_a15a14 == 2'b01);
+wire n_cpu_a_8000_bfff = ~(cpu_a15a14 == 2'b10);
+wire n_cpu_a_c000_ffff = ~(cpu_a15a14 == 2'b11);
 
+//
+wire n_vcs_cpu = CPU_MREQ | n_cpu_a_0000_3fff;
+wire n_vrd = ( (n_vcs_cpu == 0 && CPU_RD == 0) || screen_read == 1)? 1'b0 : 1'b1;
+wire n_vwr = ( (n_vcs_cpu == 0 && CPU_WR == 0) && screen_read == 0)? 1'b0 : 1'b1;
+
+//
+wire cpu_or_dis = ~screen_read;
+
+
+//  /********** ext RAM W24257AK-20 32kb ************/ 
+// wire ext_ram_cs =  cpu_or_dis? (CPU_MREQ | ~(A[15] | A[14]))	:(n_vcs_cpu);// | (A == 16'h4005) ; // 4000
+// wire ext_ram_rd =  cpu_or_dis? (CPU_RD   | ext_ram_cs)			:(n_vrd);
+// wire ext_ram_wr =  cpu_or_dis? (CPU_WR   | ext_ram_cs)			:(n_vwr);
  
-assign VA  = cpu_dis?(A[14:0]):(screen_addr);
-assign D   = cpu_dis?((ext_ram_rd == 1'b0) ? VD : 8'bZ):(8'bZ);
-assign VD  = (ext_ram_wr == 1'b0) ? D  : 8'bZ;
-assign VWR = cpu_dis?(ext_ram_wr):(1'b1);
+// assign VA  = cpu_or_dis? (A[14:0])									:(screen_addr);
+// assign D   = cpu_or_dis? ((ext_ram_rd == 1'b0) ? VD : 8'bZ)	:(8'bZ);
+// assign VD  = cpu_or_dis? ((ext_ram_wr == 1'b0) ? D  : 8'bZ)	:(8'bZ);
+// assign VWR = cpu_or_dis? (ext_ram_wr)								:(1'b1);
+
+assign VWR = 1'b1;
+assign VD = 8'bz;
+assign VA  = 15'bz;
+
+/***************** RAM 1024k ********************/	
+wire main_ram_cs =  cpu_or_dis? (CPU_MREQ | ~n_cpu_a_0000_3fff)	:(n_vcs_cpu);
+wire main_ram_rd =  cpu_or_dis? (CPU_RD   | main_ram_cs)			:(n_vrd);
+wire main_ram_wr =  cpu_or_dis? (CPU_WR   | main_ram_cs)			:(n_vwr);
+
+assign MA = cpu_or_dis? ( {3'b1, A[15:0]}	)							:({3'b1, vbank, screen_addr});
+assign D  = cpu_or_dis? ((main_ram_rd == 1'b0) ? MD : 8'bZ)		:(8'bZ);
+assign MD = cpu_or_dis? ((main_ram_wr == 1'b0) ? D  : 8'bZ)		:(8'bZ);
+assign WR_RAM  = cpu_or_dis? (main_ram_wr) :(1'b1);
+assign CS_RAM0 = main_ram_cs;
+assign CS_RAM1 = main_ram_cs;
 
 
 
-reg screen_read;
-wire n_iorq0 = CPU_IORQ | screen_read;
 
+wire n_romcs = CPU_MREQ | n_cpu_a_0000_3fff; // 0000
 
 /* SCREEN CONTROLLER */
 localparam H_AREA         = 256;
@@ -162,23 +187,26 @@ end
 
 reg [2:0] border;
 reg [7:0] bitmap, attr, bitmap_next, attr_next;
-wire pixel = bitmap[7];
-wire attr_read = screen_read & ~hc0[0];
-wire bitmap_read = screen_read & hc0[0];
+wire pixel 			= bitmap[7];
+wire attr_read 	= screen_read & ~hc0[0];
+wire bitmap_read 	= screen_read & hc0[0];
 wire [14:0] bitmap_addr = { 2'b10, vc[7:6], vc[2:0], vc[5:3], hc[7:3] };
-wire [14:0] attr_addr = { 5'b10110, vc[7:3], hc[7:3] };
+wire [14:0] attr_addr 	= { 5'b10110, vc[7:3], hc[7:3] };
 wire [14:0] screen_addr = bitmap_read? bitmap_addr : attr_addr;
-wire screen_show = (vc < V_AREA) && (hc >= SCREEN_DELAY) && (hc < H_AREA + SCREEN_DELAY);
-wire screen_update = (vc < V_AREA) && (hc < H_AREA) && hc0[3:0] == 4'b1111;
-wire border_update = (hc0[3:0] == 4'b1111) || (screen_show == 0);
+wire screen_show 		= (vc < V_AREA) && (hc >= SCREEN_DELAY) && (hc < H_AREA + SCREEN_DELAY);
+wire screen_update 	= (vc < V_AREA) && (hc < H_AREA) && hc0[3:0] == 4'b1111;
+wire border_update 	= (hc0[3:0] == 4'b1111) || (screen_show == 0);
+
+reg screen_read;
+wire n_iorq0 = CPU_IORQ | screen_read;
 
 always @(posedge CLK_14MHZ) begin
     screen_read <= CPU_MREQ == 1'b1 && CPU_IORQ == 1'b1;
 
     if (attr_read)
-        attr_next <= VD;
+        attr_next 	<= MD;
     if (bitmap_read)
-        bitmap_next <= VD;
+        bitmap_next 	<= MD;
 
     if (screen_update)
         attr <= attr_next;
@@ -225,6 +253,7 @@ always @(posedge CLK_14MHZ)
 
 /* CLOCK */
 assign CPU_CLK = clkcpu;
+wire clkcpu;
 assign clkcpu = hc[0];
 
 
@@ -253,24 +282,38 @@ end
 
 
 /* PORT #7FFD */
-wire port_7ffd_cs = CPU_M1 == 1 && n_iorq0 == 0 && A[1] == 0 && A[15] == 0;
+wire port_7ffd_cs = CPU_M1 == 1 && n_iorq0 == 0 && A == 16'h7ffd;
 reg [2:0] rambank;
 reg rombank, vbank, lock_7ffd;
 always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
     if (!CPU_RESET) begin
-        rambank <= 0;
-        vbank <= 0;
-        rombank <= 0;
+        rambank 	<= 0;
+        vbank 		<= 0;
+        rombank 	<= 0;
         lock_7ffd <= 0;
     end
     else if (port_7ffd_cs && CPU_WR == 0 && lock_7ffd == 0) begin
-        rambank <= D[2:0];
-        vbank <= D[3];
-        rombank <= D[4];
-        lock_7ffd <= D[5];
+        rambank 	<= D[2:0];
+        vbank 		<= D[3];
+        rombank 	<= D[4];
+        lock_7ffd <= 0;//<= D[5];
     end
 end
 
+	// io
+	// wire iowr = n_iorq0 | CPU_WR ;//| ~m1;
+	// wire iord = n_iorq0 | CPU_RD ;//| ~m1;
+	// // Port 0x7ffd
+	// reg [7:0] port_0x7ffd = 8'b0;
+	// // write 0x7ffd
+	// always @(negedge iowr or negedge CPU_RESET) begin
+	// 	if(!CPU_RESET) port_0x7ffd <= 8'b0;
+	// 	else begin
+	// 		if(A == 16'h7ffd) port_0x7ffd <= D;
+	// 	end		
+	// end
+	// read 0x7ffd
+	//assign D = (iord == 0 && A == 16'h7ffd)?(port_0x7ffd):(8'bz);
 
 
 /* MEMORY CONTROLLER */
@@ -289,19 +332,34 @@ end
 //    0   00       0   rom0
 //    1   00       1   rom1
 
-wire n_vcs_cpu = CPU_MREQ | ~(A[15] | A[14]);
-assign n_vrd = ((n_vcs_cpu == 0 && CPU_RD == 0) || screen_read == 1)? 1'b0 : 1'b1;
-assign n_vwr = ((n_vcs_cpu == 0 && CPU_WR == 0) && screen_read == 0)? 1'b0 : 1'b1;
-assign n_romcs = CPU_MREQ | A[15] | A[14];
 
+/*
+wire n_vcs_cpu = n_mreq | ~(a15 | a14);
+assign n_vrd = ((n_vcs_cpu == 0 && n_rd == 0) || screen_read == 1)? 1'b0 : 1'b1;
+assign n_vwr = ((n_vcs_cpu == 0 && n_wr == 0) && screen_read == 0)? 1'b0 : 1'b1;
+assign n_romcs = n_mreq | a15 | a14;
+
+assign ra14 = rombank;
+
+assign va[16:0] = 
+	screen_read? {1'b1, vbank, screen_addr} :
+	a15 & a14? {rambank, {14{1'bz}}} :
+	{a14, a15, a14, {14{1'bz}}};
+
+assign vd[7:0] = 
+	port_fe_rd? port_fe_data :
+	n_iorq0 == 0 && (n_rd == 0 | n_m1 == 0)? {8{1'b1}} :
+	{8{1'bz}};
+*/
+
+
+wire ra14;
 assign ra14 = rombank;
 
 //assign va[15:0] = 
     //screen_read? {1'b0, screen_addr} :
     //A[15:0];
 
-wire cp_ds;
-assign cp_ds = ~screen_read;
 
 assign SYNC = csync;
 assign R = r;
