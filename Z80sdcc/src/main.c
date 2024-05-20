@@ -24,7 +24,7 @@ void check_mem(void);
 static int offset = 0;
 
 void main() {
-    port_0x7ffd = 0x00;
+    //port_0x7ffd = 0x00;
     uart_init();
     init_screen();
     uart_print("\r\n\r\n***********************\r\n");

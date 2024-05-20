@@ -133,19 +133,19 @@ assign VWR = 1'b1;
 assign VD = 8'bz;
 assign VA  = 15'bz;
 
-/***************** RAM 1024k ********************/	
-wire main_ram_cs =  cpu_or_dis? (CPU_MREQ | ~n_cpu_a_0000_3fff)	:(n_vcs_cpu);
-wire main_ram_rd =  cpu_or_dis? (CPU_RD   | main_ram_cs)			:(n_vrd);
-wire main_ram_wr =  cpu_or_dis? (CPU_WR   | main_ram_cs)			:(n_vwr);
 
-assign MA = cpu_or_dis? ( {3'b1, A[15:0]}	)							:({3'b1, vbank, screen_addr});
+/***************** RAM 1024k ********************/	
+wire main_ram_cs =  cpu_or_dis? (CPU_MREQ | ~n_cpu_a_0000_3fff):(1'b0);
+wire main_ram_rd =  cpu_or_dis? (CPU_RD   | main_ram_cs)			:(n_vrd);
+wire main_ram_wr =  cpu_or_dis? (CPU_WR   | main_ram_cs)			:(1'b1);
+
+assign MA = cpu_or_dis? ((A[15] & A[14]) ?({2'b0, rambank, A[13:0]}):({3'b0, A[15:0]}))    :({3'b0, vbank, screen_addr});
+
 assign D  = cpu_or_dis? ((main_ram_rd == 1'b0) ? MD : 8'bZ)		:(8'bZ);
 assign MD = cpu_or_dis? ((main_ram_wr == 1'b0) ? D  : 8'bZ)		:(8'bZ);
-assign WR_RAM  = cpu_or_dis? (main_ram_wr) :(1'b1);
+assign WR_RAM  = main_ram_wr;
 assign CS_RAM0 = main_ram_cs;
-assign CS_RAM1 = main_ram_cs;
-
-
+assign CS_RAM1 = ~main_ram_cs;
 
 
 wire n_romcs = CPU_MREQ | n_cpu_a_0000_3fff; // 0000
