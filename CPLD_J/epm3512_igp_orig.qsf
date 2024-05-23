@@ -179,3 +179,4 @@ set_location_assignment PIN_146 -to STM32_BUSRQ
 set_location_assignment PIN_119 -to VD[6]
 set_location_assignment PIN_123 -to VD[7]
 set_global_assignment -name VERILOG_FILE src/main.v
+set_location_assignment PIN_9 -to LCK_ROM

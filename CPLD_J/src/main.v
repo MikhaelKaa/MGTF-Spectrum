@@ -42,6 +42,7 @@ module epm3512_igp_orig (
     output WR_ROM,
     output RD_ROM,
     output CS_ROM,
+	 input  LCK_ROM, // EXT4
     
     // Video output
     output [7:0]VGA, //TODO -2
@@ -98,9 +99,11 @@ wire n_rom_rd = CPU_RD | CPU_MREQ;//   | n_rom_cs;
 
 assign ROM_A14 = rombank;
 assign ROM_A15 = 1'b1;
-assign ROM_A16 = 1'b1;
-assign ROM_A17 = 1'b0;
+
+assign ROM_A16 = 1'b0;
+assign ROM_A17 = 1'b1;
 assign ROM_A18 = 1'b0;
+
 assign WR_ROM 	= 1'b1;
 assign RD_ROM 	= n_rom_rd;
 assign CS_ROM 	= n_rom_cs;
