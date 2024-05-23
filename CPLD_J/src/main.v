@@ -94,14 +94,17 @@ module epm3512_igp_orig (
     //output BC1,
 );
 
-wire n_rom_cs = ~CPU_IORQ | CPU_MREQ | n_cpu_a_0000_3fff;//A[15] | A[14]; 
-wire n_rom_rd = CPU_RD | CPU_MREQ;//   | n_rom_cs;
+assign EXT2 = LCK_ROM;
+
+
+wire n_rom_cs = ~CPU_IORQ | CPU_MREQ | n_cpu_a_0000_3fff | LCK_ROM; //A[15] | A[14]; 
+wire n_rom_rd = CPU_RD | CPU_MREQ; //   | n_rom_cs;
 
 assign ROM_A14 = rombank;
 assign ROM_A15 = 1'b1;
 
-assign ROM_A16 = 1'b0;
-assign ROM_A17 = 1'b1;
+assign ROM_A16 = 1'b1;
+assign ROM_A17 = 1'b0;
 assign ROM_A18 = 1'b0;
 
 assign WR_ROM 	= 1'b1;
@@ -140,7 +143,7 @@ assign D  = cpu_or_dis? ((main_ram_rd == 1'b0) ? MD : 8'bZ)		:(8'bZ);
 assign MD = cpu_or_dis? ((main_ram_wr == 1'b0) ? D  : 8'bZ)		:(8'bZ);
 assign WR_RAM  = main_ram_wr;
 assign CS_RAM0 = main_ram_cs;
-assign CS_RAM1 = ~main_ram_cs;
+assign CS_RAM1 = 1'b1;
 
 //  /********** ext RAM W24257AK-20 32kb ************/ 
 // wire ext_ram_cs =  cpu_or_dis? (CPU_MREQ | ~(A[15] | A[14]))	:(n_vcs_cpu);// | (A == 16'h4005) ; // 4000
@@ -264,6 +267,10 @@ wire clkcpu;
 assign clkcpu = hc[0];
 
 
+/* PORT FF */
+wire port_ff_cs = CPU_M1 == 1 && CPU_IORQ == 0 && A == 8'hff;
+assign D = port_ff_cs?MD:8'bz;
+
 /* PORT #FE */
 wire port_fe_cs = CPU_M1 == 1 && n_iorq0 == 0 && A[0] == 0;
 
@@ -294,6 +301,7 @@ wire port_7ffd_cs = CPU_M1 == 1 && n_iorq0 == 0 && A == 16'h7ffd;
 
 reg [2:0] rambank;
 reg [1:0] ext_rambank_7ffd;
+reg ext_rambank;
 
 reg rombank, vbank, lock_7ffd;
 always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
@@ -302,16 +310,18 @@ always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
         vbank 		<= 0;
         rombank 	<= 0;
         lock_7ffd <= 0;
-		  ext_rambank_7ffd <= 2'b11;  
+		  ext_rambank_7ffd <= 2'b11;
+		  ext_rambank <= 1'b1;
     end
     else begin 
 		if (port_7ffd_cs && CPU_WR == 0 && lock_7ffd == 0) begin
-        rambank 					<= D[2:0];
-        vbank 						<= D[3];
-        rombank 					<= D[4];
-        //lock_7ffd 				<= lock128k?1'b0: D[5];       :)
-		  //ext_rambank_7ffd[0] 	<= lock128k?1'b1:~D[6];
-		  //ext_rambank_7ffd[1] 	<= lock128k?1'b1:~D[7];
+        rambank 									<= D[2:0];
+        vbank 										<= D[3];
+        rombank 									<= D[4];
+        if(lock128k) lock_7ffd 				<= D[5];
+		  else ext_rambank 						<= D[5];
+		  if(!lock128k) ext_rambank_7ffd[0]	<= ~D[6];
+		  if(!lock128k) ext_rambank_7ffd[1]	<= ~D[7];
 		end
     end
 end
@@ -343,6 +353,8 @@ always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
 		end
     end
 end
+
+
 
 	// io
 	// wire iowr = n_iorq0 | CPU_WR ;//| ~m1;
