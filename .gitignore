@@ -7,3 +7,6 @@
 /CPLD_J/incremental_db
 /CPLD_J/src/*.bak
 /Z80sdcc/build
+/aumt_test/build
+/roms/j.bin
+/aumt_test/target.bin

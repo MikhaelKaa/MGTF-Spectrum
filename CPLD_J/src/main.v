@@ -104,7 +104,7 @@ assign ROM_A14 = rombank;
 assign ROM_A15 = 1'b1;
 
 assign ROM_A16 = 1'b1;
-assign ROM_A17 = 1'b0;
+assign ROM_A17 = 1'b1;
 assign ROM_A18 = 1'b0;
 
 assign WR_ROM 	= 1'b1;
@@ -318,8 +318,8 @@ always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
         rambank 									<= D[2:0];
         vbank 										<= D[3];
         rombank 									<= D[4];
-        if(lock128k) lock_7ffd 				<= D[5];
-		  else ext_rambank 						<= D[5];
+        /*if(lock128k) lock_7ffd 				<= D[5];
+		  else */ext_rambank 						<= ~D[5];
 		  if(!lock128k) ext_rambank_7ffd[0]	<= ~D[6];
 		  if(!lock128k) ext_rambank_7ffd[1]	<= ~D[7];
 		end
@@ -327,7 +327,7 @@ always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
 end
 
 
-/* PORT EFFD */
+/* PORT EFF7 */
 wire port_eff7_cs = CPU_M1 == 1 && n_iorq0 == 0 && A == 16'heff7;
 reg ext_video_16col 		= 1'b0;
 reg lock128k 				= 1'b0;
