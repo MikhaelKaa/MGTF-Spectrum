@@ -97,7 +97,7 @@ module epm3512_igp_orig (
 assign EXT2 = LCK_ROM;
 
 
-wire n_rom_cs = ~CPU_IORQ | CPU_MREQ | n_cpu_a_0000_3fff | LCK_ROM; //A[15] | A[14]; 
+wire n_rom_cs = ~CPU_IORQ | CPU_MREQ | n_cpu_a_0000_3fff | LCK_ROM | ram2rom; //A[15] | A[14]; 
 wire n_rom_rd = CPU_RD | CPU_MREQ; //   | n_rom_cs;
 
 assign ROM_A14 = rombank;
@@ -133,17 +133,17 @@ wire cpu_or_dis = ~screen_read;
 
 
 /***************** RAM 1024k ********************/	
-wire main_ram_cs =  cpu_or_dis? (CPU_MREQ | ~n_cpu_a_0000_3fff):(1'b0);
+wire main_ram_cs =  cpu_or_dis? (CPU_MREQ | (ram2rom?(1'b0):(~n_cpu_a_0000_3fff))):(1'b0);
 wire main_ram_rd =  cpu_or_dis? (CPU_RD   | main_ram_cs)			:(n_vrd);
 wire main_ram_wr =  cpu_or_dis? (CPU_WR   | main_ram_cs)			:(1'b1);
 
-assign MA = cpu_or_dis? ((A[15] & A[14]) ?({ext_rambank_7ffd, rambank, A[13:0]}):({2'b11, A[14], A[15:0]}))    :({3'b111, vbank, screen_addr});
+assign MA = cpu_or_dis? ((A[15] & A[14]) ?({ext_rambank_7ffd[1:0], rambank, A[13:0]}):({2'b11, A[14], A[15:0]}))    :({3'b111, vbank, screen_addr});
 
 assign D  = cpu_or_dis? ((main_ram_rd == 1'b0) ? MD : 8'bZ)		:(8'bZ);
 assign MD = cpu_or_dis? ((main_ram_wr == 1'b0) ? D  : 8'bZ)		:(8'bZ);
 assign WR_RAM  = main_ram_wr;
-assign CS_RAM0 = main_ram_cs;
-assign CS_RAM1 = 1'b1;
+assign CS_RAM0 = ext_rambank_7ffd[2]?main_ram_cs:1'b1;
+assign CS_RAM1 = ext_rambank_7ffd[2]?1'b1:main_ram_cs;
 
 //  /********** ext RAM W24257AK-20 32kb ************/ 
 // wire ext_ram_cs =  cpu_or_dis? (CPU_MREQ | ~(A[15] | A[14]))	:(n_vcs_cpu);// | (A == 16'h4005) ; // 4000
@@ -300,8 +300,8 @@ wire port_7ffd_cs = CPU_M1 == 1 && n_iorq0 == 0 && A == 16'h7ffd;
 
 
 reg [2:0] rambank;
-reg [1:0] ext_rambank_7ffd;
-reg ext_rambank;
+reg [2:0] ext_rambank_7ffd;
+
 
 reg rombank, vbank, lock_7ffd;
 always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
@@ -310,18 +310,17 @@ always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
         vbank 		<= 0;
         rombank 	<= 0;
         lock_7ffd <= 0;
-		  ext_rambank_7ffd <= 2'b11;
-		  ext_rambank <= 1'b1;
+		  ext_rambank_7ffd <= 3'b111;
     end
     else begin 
 		if (port_7ffd_cs && CPU_WR == 0 && lock_7ffd == 0) begin
         rambank 									<= D[2:0];
         vbank 										<= D[3];
         rombank 									<= D[4];
-        /*if(lock128k) lock_7ffd 				<= D[5];
-		  else */ext_rambank 						<= ~D[5];
-		  if(!lock128k) ext_rambank_7ffd[0]	<= ~D[6];
-		  if(!lock128k) ext_rambank_7ffd[1]	<= ~D[7];
+        if(lock128k == 1'b1) lock_7ffd		<= D[5];
+		  else ext_rambank_7ffd[2]				<= ~D[5];
+		  ext_rambank_7ffd[1]					<= ~D[6];
+		  ext_rambank_7ffd[0]					<= ~D[7];
 		end
     end
 end
@@ -349,7 +348,7 @@ always @(posedge CLK_14MHZ or negedge CPU_RESET) begin
 			lock128k 			<= D[2];
 			ram2rom 				<= D[3];
 			turbo 				<= D[4];
-			ext_video_384x304 <= D[5];
+			ext_video_384x304 <= D[6];
 		end
     end
 end
