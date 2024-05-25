@@ -142,8 +142,8 @@ assign MA = cpu_or_dis? ((A[15] & A[14]) ?({ext_rambank_7ffd[1:0], rambank, A[13
 assign D  = cpu_or_dis? ((main_ram_rd == 1'b0) ? MD : 8'bZ)		:(8'bZ);
 assign MD = cpu_or_dis? ((main_ram_wr == 1'b0) ? D  : 8'bZ)		:(8'bZ);
 assign WR_RAM  = main_ram_wr;
-assign CS_RAM0 = ext_rambank_7ffd[2]?main_ram_cs:1'b1;
-assign CS_RAM1 = ext_rambank_7ffd[2]?1'b1:main_ram_cs;
+assign CS_RAM0 = n_cpu_a_c000_ffff?(main_ram_cs) : (ext_rambank_7ffd[2]?main_ram_cs:1'b1);
+assign CS_RAM1 = n_cpu_a_c000_ffff?(1'b1)        : (ext_rambank_7ffd[2]?1'b1:main_ram_cs);
 
 //  /********** ext RAM W24257AK-20 32kb ************/ 
 // wire ext_ram_cs =  cpu_or_dis? (CPU_MREQ | ~(A[15] | A[14]))	:(n_vcs_cpu);// | (A == 16'h4005) ; // 4000
