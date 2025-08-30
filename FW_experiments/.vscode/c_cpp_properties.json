@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "sdcc_properties",
+            "includePath": [
+
+            ],
+            "defines": [
+                "BAREMETAL"
+            ]
+        }
+    ],
+    "version": 4
+}

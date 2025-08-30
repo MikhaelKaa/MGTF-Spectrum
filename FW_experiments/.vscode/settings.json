@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "main.h": "c",
+        "tl16c550.h": "c",
+        "defines.h": "c",
+        "cstdint": "c",
+        "string_custom.h": "c",
+        "arg.h": "c",
+        "printf.h": "c",
+        "font.h": "c"
+    }
+}

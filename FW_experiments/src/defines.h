@@ -13,11 +13,14 @@
     #define __naked
     #define __asm
     #define __endasm
+    #define jp
     
     #define ds
     #define nop
     #define ld
     #define iy
 #endif
+
+// #define uint8_t unsigned char
 
 #endif /* __DEFINES__ */

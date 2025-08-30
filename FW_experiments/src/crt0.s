@@ -14,7 +14,7 @@
     ; 0028h EF RST 40
     ; 0030h F7 RST 48
     ; 0038h FF RST 56
-; when a Nonmaskable Interrupt (NMI) signal is received, the CPU ignores the next instruction and instead restarts, returning to memory address 0066h
+    ; when a Nonmaskable Interrupt (NMI) signal is received, the CPU ignores the next instruction and instead restarts, returning to memory address 0066h
 
     .module crt0
     .area   _CODE
@@ -144,8 +144,8 @@ gsinit_none:
     ;; this is where we store the stack pointer
 __store_sp:	
     .word 1
-    ;; 2048 bytes of operating system stack
-    .ds	2048
+    ;; 4096 bytes of operating system stack
+    .ds	4096
 __stack::
     .area _HEAP
 __heap::
