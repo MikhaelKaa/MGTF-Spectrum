@@ -1,41 +1,43 @@
 ; Обработчик системных вызовов
-    ; db "syscall_handler"
+    db "syscall_handler"
+
+; TODO: WARNING, самомодифицирующийся код, не пригодно для размещения в ROM в текущем виде.
+; метка, хранящая opcode перехода
+opcode_jp:
+    db 0xc3
+; Переменная для хранения адреса обработчика
+handler_pointer:
+    dw 0x0000
+
 syscall_handler:
-    SAVE_FULL_CTX
+    push hl
+    push de
     
-    ; Вычисляем адрес обработчика
-    ld hl, syscall_table
+    ; Вычисляем адрес обработчика в таблице
     add a, a        ; Умножаем A на 2 (A = номер вызова)
     ld e, a
     ld d, 0
+    
+    ld hl, syscall_table
     add hl, de      ; HL = адрес в таблице
     
     ; Загружаем адрес обработчика
     ld e, (hl)
     inc hl
     ld d, (hl)
-
-    push hl
-    ld hl, SCREEN_PIXELS+11
-    ld(hl), 0x3
-    pop hl
-
-    ; Сохраняем адрес возврата и переходим к обработчику
-    ld hl, .return
-    push hl
-    ex de, hl
-    jp (hl)
-.return:
-    RESTORE_FULL_CTX
-    ret
-
-
-
     
+    ; Сохраняем адрес обработчика во временную переменную
+    ld (handler_pointer), de
+    
+    ; Восстанавливаем регистры
+    pop de
+    pop hl
+    
+    ; Переходим к обработчику
+    jp opcode_jp
 
     
 sys_open:
-
     push hl
     ld hl, SCREEN_PIXELS+16
     ld(hl), 0x5
@@ -92,12 +94,6 @@ sys_print:
     ; d - x
     ; e - y
     ; hl - string pointer
-
-    push hl
-    ld hl, SCREEN_PIXELS+12
-    ld(hl), 0x5
-    pop hl
-
     call print_string
     ret
 

@@ -10,6 +10,7 @@ code_start:
 
     ; RST 8 - Системный вызов
     org 0x0008
+    ; call print_string
     jp syscall_handler
 
     ; RST 16 (0x10) - Дополнительный системный вызов
@@ -83,6 +84,9 @@ start:
     ; Инициализация системы
     call sys_init
 
+    ld a, 0
+    rst 8
+
 loop:
     halt
     ld a, 0b00000111
@@ -93,12 +97,12 @@ loop:
 
 hello_str:
     db "hello!", 0
+rst_str:
+    db "rst 8 ok!", 0   
 ; Инициализация системы
 sys_init:
-    ld d, 0x1
-    ld e, 0x1
-    ld hl, hello_str
-    ; call print_string
+    ld de, 0x0100
+    ld hl, rst_str
     ld a, 25
     rst 8
     ret
