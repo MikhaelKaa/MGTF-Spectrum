@@ -1,14 +1,11 @@
     device ZXSPECTRUM48
 
-; В макросах есть ошибки, нужно исправить.
     include "macros.asm"
 
-
-begin:
+code_start:
     org 0x0000
     ; Запрещаем прерывания.
     di
-    im 1
     jp start
 
     ; RST 8 - Системный вызов
@@ -56,6 +53,7 @@ begin:
     ; start int programm
     ld a, 0b00000010
     out (0xfe), a
+    call clear_screen
     ld bc, 100
     call delay
     ; end int programm
@@ -63,12 +61,24 @@ begin:
     ei
     reti
 
+
+    include "syscall_table.asm"
+
     org 0x0100
+    ; db "start"
 start:
-    ; Устанавливаем дно стека.
+    ; Режим работы прерывания
+    im 1
+    ; Устанавливаем стек.
     ld sp, 0xffff
     ; Разрешаем прерывания.
     ei    
+
+    call clear_screen
+    ld d, 0x00
+    ld e, 0x00
+    ld hl, hello_str
+    call print_string
 
     ; Инициализация системы
     call sys_init
@@ -79,26 +89,23 @@ loop:
     out (0xfe), a
     jp loop 
 
-; Обработчик системных вызовов
-syscall_handler:
-    ; Сохраняем полный контекст
-    SAVE_FULL_CTX
-    
-    ; Здесь будет диспетчеризация системных вызовов
-    ; Номер вызова передается в регистре A
-    ; Аргументы - в других регистрах
-    
-    ; Простая заглушка - просто возвращаем управление
-    ; В реальной ОС здесь будет выбор нужной функции по номеру в A
-    
-    ; Восстанавливаем контекст
-    RESTORE_FULL_CTX
-    ret
+    include "syscall.asm"
 
+hello_str:
+    db "hello!", 0
 ; Инициализация системы
 sys_init:
-    ; Здесь будет инициализация подсистем ОС
+    ld d, 0x1
+    ld e, 0x1
+    ld hl, hello_str
+    ; call print_string
+    ld a, 25
+    rst 8
     ret
+
+
+    org 0x300; TODO для отладки
+    include "zx_scr_print.asm"
 
 ; Процедура задержки
 delay:
@@ -108,7 +115,19 @@ delay:
     jr nz, delay
     ret
 
-end:
+
+code_end:
+
+    org 0xc000
+data_start:   
+    ; data section
+myvar:
+    db 1
+data_end:
+
     ; Выводим размер банарника.
-    display "code size: ", /d, end - begin
-    SAVEBIN "build/core.bin", begin, 16384
+    display "code start: ", /h, code_start
+    display "code size: ", /d, code_end - code_start
+    display "data start: ", /h, data_start
+    display "data size: ", /d, data_end - data_start
+    SAVEBIN "build/core.bin", code_start, 16384

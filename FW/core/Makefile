@@ -11,6 +11,6 @@ clean:
 	rm -rf build
 
 flash:
-	PCProg.exe COM18 core.bin
+	PCProg.exe COM18 ./build/core.bin
 
 .PHONY: all build clean
