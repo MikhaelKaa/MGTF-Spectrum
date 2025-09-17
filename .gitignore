@@ -12,3 +12,12 @@
 /aumt_test/target.bin
 /FW_experiments/build
 /FW/core/build
+/de0-nano/*.rpt
+/de0-nano/incremental_db
+/de0-nano/db
+/de0-nano/*.done
+/de0-nano/*.smsg
+/de0-nano/*.summary
+/de0-nano/*.jdi
+/de0-nano/*.pin
+/de0-nano/*.sof
