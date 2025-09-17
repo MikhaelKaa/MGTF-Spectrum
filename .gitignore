@@ -23,3 +23,6 @@
 /de0-nano/*.sof
 /de0-nano/PLLJ_PLLSPE_INFO.txt
 /de0-nano/greybox_tmp
+/de0-nano/*.bak
+/de0-nano/src/video_sync_gen/*.vcd
+/de0-nano/src/video_sync_gen/*.bak

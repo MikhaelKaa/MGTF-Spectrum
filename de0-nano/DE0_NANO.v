@@ -80,10 +80,18 @@ end
 assign LED[6:0] = test_counter[31:31-7];
 
 pll14m my_pll14m (
-        .areset(1'b0),
+        .areset(~KEY[0]),
         .inclk0(CLOCK_50),    
         .c0(GPIO_0[0]),
 		  .locked(LED[7])
     );
 
+video_sync_gen my_video_sync_gen (
+        .reset(~KEY[0]),
+        .clk(test_counter[1]),    
+        .h_sync(GPIO_0[1]),
+		  .v_sync(GPIO_0[2]),
+		  .active_video(GPIO_0[3])
+    );
+	 
 endmodule
