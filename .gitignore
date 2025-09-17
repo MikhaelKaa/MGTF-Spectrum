@@ -21,3 +21,5 @@
 /de0-nano/*.jdi
 /de0-nano/*.pin
 /de0-nano/*.sof
+/de0-nano/PLLJ_PLLSPE_INFO.txt
+/de0-nano/greybox_tmp
