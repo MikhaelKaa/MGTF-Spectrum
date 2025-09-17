@@ -77,6 +77,13 @@ always @(posedge CLOCK_50) begin
 	test_counter = test_counter + 1;
 end
 
-assign LED = test_counter[31:31-8];
+assign LED[6:0] = test_counter[31:31-7];
+
+pll14m my_pll14m (
+        .areset(1'b0),
+        .inclk0(CLOCK_50),    
+        .c0(GPIO_0[0]),
+		  .locked(LED[7])
+    );
 
 endmodule
