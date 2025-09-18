@@ -1,7 +1,7 @@
 module video_sync_gen (
     input wire clk,           // Тактовый сигнал 14 MHz
     input wire reset,         // Сброс (активный высокий уровень)
-    output reg h_sync,        // Строчный синхроимпульс (4.7 мкс)
+    output reg h_sync,        // Строчный синхроимпульс
     output reg v_sync,        // Кадровый синхроимпульс
     output reg [10:0] x_pos,  // Текущая координата X (пиксель)
     output reg [10:0] y_pos,  // Текущая координата Y (строка)
@@ -10,17 +10,19 @@ module video_sync_gen (
 
 // Параметры горизонтальной развертки (центрированные)
 parameter H_ACTIVE  = 320;    // Активная область
-parameter H_FP      = 64;     // Front porch 
+parameter H_FP      = 64;     // Front porch
 parameter H_SYNC    = 33;     // Длительность синхроимпульса (4.7 мкс при 7 MHz)
-parameter H_BP      = 31;     // Back porch 
+parameter H_BP      = 31;     // Back porch
 parameter H_TOTAL   = 448;    // Всего пикселей в строке
 
 // Параметры вертикальной развертки (центрированные)
 parameter V_ACTIVE  = 240;    // Активная область
-parameter V_FP      = 36;     // Front porch 
-parameter V_SYNC    = 2;      // Длительность синхроимпульса
-parameter V_BP      = 34;     // Back porch 
+parameter V_FP      = 36;     // Front porch
+parameter V_SYNC    = 25;     // Длительность синхроимпульса
+parameter V_BP      = 34;     // Back porch
 parameter V_TOTAL   = 312;    // Всего строк в кадре
+//parameter V_TOTAL   = 320;    // Всего строк в кадре
+
 
 // Внутренние счетчики
 reg [10:0] h_counter = 0;
@@ -36,11 +38,11 @@ always @(posedge clk or posedge reset) begin
     end
 end
 
-// Счетчик горизонтальной позиции
+// Счетчик горизонтальной позиции (работает на 7 MHz)
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         h_counter <= 0;
-    end else if (pixel_clock) begin
+    end else if (pixel_clock) begin  // Обновляем только при pixel_clock = 1
         if (h_counter == H_TOTAL - 1) begin
             h_counter <= 0;
         end else begin
@@ -49,7 +51,7 @@ always @(posedge clk or posedge reset) begin
     end
 end
 
-// Счетчик вертикальной позиции
+// Счетчик вертикальной позиции (работает на 7 MHz)
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         v_counter <= 0;
@@ -67,6 +69,7 @@ always @(posedge clk or posedge reset) begin
     if (reset) begin
         h_sync <= 1;
     end else if (pixel_clock) begin
+        // Активный низкий уровень в течение H_SYNC тактов
         h_sync <= !(h_counter < H_SYNC);
     end
 end
@@ -76,6 +79,7 @@ always @(posedge clk or posedge reset) begin
     if (reset) begin
         v_sync <= 1;
     end else if (pixel_clock) begin
+        // Активный низкий уровень в течение V_SYNC строк
         v_sync <= !(v_counter < V_SYNC);
     end
 end
@@ -98,10 +102,17 @@ always @(posedge clk or posedge reset) begin
         x_pos <= 0;
         y_pos <= 0;
     end else if (pixel_clock) begin
-        x_pos <= (h_counter >= H_SYNC + H_BP) ? 
-                (h_counter - (H_SYNC + H_BP)) : 0;
-        y_pos <= (v_counter >= V_SYNC + V_BP) ? 
-                (v_counter - (V_SYNC + V_BP)) : 0;
+        // Вычисляем координаты только в активной области
+        if (h_counter >= H_SYNC + H_BP && 
+            h_counter < H_SYNC + H_BP + H_ACTIVE &&
+            v_counter >= V_SYNC + V_BP && 
+            v_counter < V_SYNC + V_BP + V_ACTIVE) begin
+            x_pos <= h_counter - (H_SYNC + H_BP);
+            y_pos <= v_counter - (V_SYNC + V_BP);
+        end else begin
+            x_pos <= 0;
+            y_pos <= 0;
+        end
     end
 end
 

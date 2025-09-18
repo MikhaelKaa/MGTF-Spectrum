@@ -79,16 +79,30 @@ end
 
 assign LED[6:0] = test_counter[31:31-7];
 
+wire clk_28m;
+wire clk_14m;
+wire clk_07m;
+
+reg [2:0] clk = 0;
+always @(posedge clk_28m) begin
+	clk = clk + 1;
+end
+assign clk_14m = clk[0];
+assign clk_07m = clk[1];
+
+
+assign GPIO_0[0] = clk_07m;
+
 pll14m my_pll14m (
         .areset(~KEY[0]),
         .inclk0(CLOCK_50),    
-        .c0(GPIO_0[0]),
+        .c0(clk_28m),
 		  .locked(LED[7])
     );
 
 video_sync_gen my_video_sync_gen (
         .reset(~KEY[0]),
-        .clk(test_counter[1]),    
+        .clk(clk_14m),    
         .h_sync(GPIO_0[1]),
 		  .v_sync(GPIO_0[2]),
 		  .active_video(GPIO_0[3])
