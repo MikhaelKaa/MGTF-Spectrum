@@ -77,7 +77,7 @@ always @(posedge CLOCK_50) begin
 	test_counter = test_counter + 1;
 end
 
-assign LED[6:0] = test_counter[31:31-7];
+assign LED[6:4] = test_counter[31-4:31-7];
 
 wire clk_28m;
 wire clk_14m;
@@ -100,12 +100,28 @@ pll14m my_pll14m (
 		  .locked(LED[7])
     );
 
+wire [10:0] x_video;
+wire [10:0] y_video;
+
 video_sync_gen my_video_sync_gen (
         .reset(~KEY[0]),
         .clk(clk_14m),    
         .h_sync(GPIO_0[1]),
 		  .v_sync(GPIO_0[2]),
-		  .active_video(GPIO_0[3])
+		  .active_video(GPIO_0[3]),
+		  .x_pos(x_video),
+		  .y_pos(y_video)
     );
+
 	 
+dual_port_video_ram my_dual_port_video_ram(
+			.clk(clk_28m),
+			.we_a(clk_07m),
+			
+			.addr_a(y_video),
+			.data_a(y_video),
+			
+			.addr_b(x_video),
+			.data_b(LED[3:0])
+	);
 endmodule
