@@ -4,7 +4,7 @@ JedecChain;
 	DefaultMfr(6E);
 
 	P ActionCode(Cfg)
-		Device PartName(EP4CE22F17) Path("C:/Users/Mikhail.Kargapolcev/Desktop/MGTF-Spectrum/de0-nano/") File("DE0_NANO.sof") MfrSpec(OpMask(1));
+		Device PartName(EP4CE22F17) Path("C:/Users/Kaa/Desktop/MGTF-Spectrum/de0-nano/") File("DE0_NANO.sof") MfrSpec(OpMask(1));
 
 ChainEnd;
 

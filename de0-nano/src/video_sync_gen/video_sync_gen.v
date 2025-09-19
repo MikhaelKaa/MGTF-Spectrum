@@ -8,11 +8,11 @@ module video_sync_gen (
     output reg active_video   // Флаг активной зоны изображения
 );
 
-// Параметры горизонтальной развертки (центрированные)
+// Параметры горизонтальной развертки (центрированные)   
 parameter H_ACTIVE  = 320;    // Активная область
-parameter H_FP      = 64;     // Front porch
+parameter H_FP      = 32;     // Front porch 
 parameter H_SYNC    = 33;     // Длительность синхроимпульса (4.7 мкс при 7 MHz)
-parameter H_BP      = 31;     // Back porch
+parameter H_BP      = 63;     // Back porch
 parameter H_TOTAL   = 448;    // Всего пикселей в строке
 
 // Параметры вертикальной развертки (центрированные)
