@@ -128,7 +128,7 @@ reg [31:0] frame_counter;
 reg [15:0] line_num_reg; // Регистр для номера строки
 
 // Генерация паттерна и запись в видеопамять
-always @(posedge clk_28m or negedge KEY[0]) begin
+always @(posedge clk_07m or negedge KEY[0]) begin
     if (~KEY[0]) begin
         write_addr <= 0;
         we_a <= 0;
@@ -189,7 +189,6 @@ assign GPIO_0[3:2] = {pixel[0], pixel[3]}; // R
 assign GPIO_0[5:4] = {pixel[0], pixel[2]}; // G
 assign GPIO_0[7:6] = {pixel[0], pixel[1]}; // B
 
-assign GPIO_0[0] = h_sync;
-assign GPIO_0[1] = v_sync;
+assign GPIO_0[0] = h_sync ^ ~v_sync;
 
 endmodule
