@@ -15,13 +15,11 @@ parameter H_BP      = 63;     // Back porch
 parameter H_TOTAL   = 448;    // Всего пикселей в строке
 
 // Параметры вертикальной развертки (центрированные)
-parameter V_ACTIVE  = 240;    // Активная область
-parameter V_FP      = 36;     // Front porch
+parameter V_ACTIVE  = 200;    // Активная область
+parameter V_FP      = 46;     // Front porch
 parameter V_SYNC    = 25;     // Длительность синхроимпульса
-parameter V_BP      = 34;     // Back porch
+parameter V_BP      = 24;     // Back porch
 parameter V_TOTAL   = 312;    // Всего строк в кадре
-//parameter V_TOTAL   = 320;    // Всего строк в кадре
-
 
 // Внутренние счетчики
 reg [10:0] h_counter = 0;
@@ -41,7 +39,7 @@ end
 always @(posedge clk or posedge reset) begin
     if (reset) begin
         h_counter <= 0;
-    end else if (pixel_clock) begin  // Обновляем только при pixel_clock = 1
+    end else if (pixel_clock) begin
         if (h_counter == H_TOTAL - 1) begin
             h_counter <= 0;
         end else begin
@@ -68,7 +66,6 @@ always @(posedge clk or posedge reset) begin
     if (reset) begin
         h_sync <= 1;
     end else if (pixel_clock) begin
-        // Активный низкий уровень в течение H_SYNC тактов
         h_sync <= !(h_counter < H_SYNC);
     end
 end
@@ -78,7 +75,6 @@ always @(posedge clk or posedge reset) begin
     if (reset) begin
         v_sync <= 1;
     end else if (pixel_clock) begin
-        // Активный низкий уровень в течение V_SYNC строк
         v_sync <= !(v_counter < V_SYNC);
     end
 end
@@ -101,7 +97,7 @@ always @(posedge pixel_clock or posedge reset) begin
         pix_pos <= 0;
     end else begin
         if (active_video) begin
-        pix_pos <= pix_pos + 1'b1;
+            pix_pos <= pix_pos + 1'b1;
         end else begin
             if(~v_sync) begin
                 pix_pos <= 0;

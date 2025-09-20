@@ -54,7 +54,7 @@ module DE0_NANO(
     inout         [33:0]    GPIO_0,
     input         [1:0]    GPIO_0_IN,
 
-    //////////// GPIO_1, GPIO_1 connect to GPIO Default //////////
+    //////////// GPIO_1, GPIO 1 connect to GPIO Default //////////
     inout         [33:0]    GPIO_1,
     input         [1:0]    GPIO_1_IN
 );
@@ -110,22 +110,42 @@ video_sync_gen #(
     .clk(clk_14m),
     .h_sync(h_sync),
     .v_sync(v_sync),
-    .active_video(active_video),
-    .pix_pos(pix_pos)
+    .pix_pos(pix_pos),
+    .active_video(active_video)
 );
 
-// Вычисление адреса для чтения из видеопамяти
-wire [15:0] video_addr;
-assign video_addr = pix_pos[14:1];
+// Сигналы для video_output_controller
+wire [15:0] mem_addr;
+wire [7:0] mem_data;
+wire mem_read;
+wire [3:0] rgbi;
+wire h_sync_delayed;
+wire v_sync_delayed;
+wire active_video_delayed;
 
-wire [7:0] video_data;
+// Контроллер видеовыхода
+video_output_controller video_out (
+    .clk(clk_14m),
+    .reset(~KEY[0]),
+    .pix_pos(pix_pos),
+    .h_sync(h_sync),
+    .v_sync(v_sync),
+    .active_video(active_video),
+    .mem_addr(mem_addr),
+    .mem_data(mem_data),
+    .mem_read(mem_read),
+    .rgbi(rgbi),
+    .h_sync_out(h_sync_delayed),
+    .v_sync_out(v_sync_delayed),
+    .active_video_out(active_video_delayed)
+);
 
 // Регистры для записи в видеопамять
 reg [15:0] write_addr;
 reg [7:0] write_data;
 reg we_a;
 reg [31:0] frame_counter;
-reg [15:0] line_num_reg; // Регистр для номера строки
+reg [8:0] line_counter; // Счетчик строк (0-199)
 
 // Генерация паттерна и запись в видеопамять
 always @(posedge clk_07m or negedge KEY[0]) begin
@@ -133,41 +153,33 @@ always @(posedge clk_07m or negedge KEY[0]) begin
         write_addr <= 0;
         we_a <= 0;
         frame_counter <= 0;
-        line_num_reg <= 0;
+        line_counter <= 0;
     end else begin
         // Увеличиваем счетчик кадров
         frame_counter <= frame_counter + 1;
         
-        // Всегда разрешаем запись
-        we_a <= 1;
+        // Разрешаем запись только в пределах активной области
+        we_a <= (write_addr < 32000); // 320x200 пикселей = 64000 пикселей / 2 = 32000 байт
         
         // Инкрементируем адрес записи
         write_addr <= write_addr + 1;
-        
-        // Обновляем номер строки на основе адреса записи
-        if (write_addr < 32000) begin
-            if (write_addr[7:0] == 159) begin
-                line_num_reg <= line_num_reg + 1;
-            end
-        end else begin
-            line_num_reg <= 0;
+        if (write_addr >= 31999) begin
+            write_addr <= 0;
         end
         
-        if (write_addr == 0) begin
-            line_num_reg <= 0;
+        // Обновляем счетчик строк
+        if (write_addr[7:0] == 8'd159) begin // Конец строки (160 байт)
+            line_counter <= line_counter + 1;
+            if (line_counter == 199) line_counter <= 0;
         end
         
         // Генерация данных для записи в зависимости от номера строки
-        if (write_addr < 32000) begin
-            case (line_num_reg)
-                16'd1: write_data <= 8'hFF; // Белая строка (два белых пикселя)
-                16'd3: write_data <= 8'h99; // Красная строка (два красных пикселя)
-                16'd5: write_data <= 8'h33; // Синяя строка (два синих пикселя)
-                default: write_data <= 8'h00; // Черная строка
-            endcase
-        end else begin
-            write_data <= 8'h00; // За пределами активной области - черный
-        end
+        case (line_counter)
+            9'd1: write_data <= 8'hFF; // Белая строка (два белых пикселя)
+            9'd3: write_data <= 8'h99; // Красная строка (два красных пикселя)
+            9'd5: write_data <= 8'h33; // Синяя строка (два синих пикселя)
+            default: write_data <= 8'h00; // Черная строка
+        endcase
     end
 end
 
@@ -177,18 +189,16 @@ dual_port_video_ram my_dual_port_video_ram(
     .we_a(we_a),
     .addr_a(write_addr),
     .data_a(write_data),
-    .addr_b(video_addr),
-    .data_b(video_data)
+    .addr_b(mem_addr),
+    .data_b(mem_data)
 );
 
-// Извлечение пикселя из байта видеопамяти
-wire [3:0] pixel = pix_pos[0] ? video_data[3:0] : video_data[7:4];
-
 // Формирование VGA сигналов (RGBI в формате 4 бита: R, G, B, I)
-assign GPIO_0[3:2] = {pixel[0], pixel[3]}; // R
-assign GPIO_0[5:4] = {pixel[0], pixel[2]}; // G
-assign GPIO_0[7:6] = {pixel[0], pixel[1]}; // B
+assign GPIO_0[3:2] = {rgbi[0], rgbi[3]}; // R
+assign GPIO_0[5:4] = {rgbi[0], rgbi[2]}; // G
+assign GPIO_0[7:6] = {rgbi[0], rgbi[1]}; // B
 
-assign GPIO_0[0] = h_sync ^ ~v_sync;
+assign GPIO_0[0] = h_sync_delayed ^ ~v_sync_delayed;
+assign GPIO_0[1] = active_video_delayed;
 
 endmodule
