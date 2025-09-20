@@ -88,8 +88,7 @@ assign clk_14m = clk_div[0];
 assign clk_07m = clk_div[1];
 
 
-wire [10:0] x_pos;
-wire [10:0] y_pos;
+wire [14:0] pix_pos;
 wire active_video;
 wire h_sync;
 wire v_sync;
@@ -112,13 +111,12 @@ video_sync_gen #(
     .h_sync(h_sync),
     .v_sync(v_sync),
     .active_video(active_video),
-    .x_pos(x_pos),
-    .y_pos(y_pos)
+    .pix_pos(pix_pos)
 );
 
 // Вычисление адреса для чтения из видеопамяти
 wire [15:0] video_addr;
-assign video_addr = y_pos * 160 + (x_pos >> 1); // 160 байт на строку (320/2)
+assign video_addr = pix_pos[14:1];
 
 wire [7:0] video_data;
 
@@ -184,7 +182,7 @@ dual_port_video_ram my_dual_port_video_ram(
 );
 
 // Извлечение пикселя из байта видеопамяти
-wire [3:0] pixel = x_pos[0] ? video_data[3:0] : video_data[7:4];
+wire [3:0] pixel = pix_pos[0] ? video_data[3:0] : video_data[7:4];
 
 // Формирование VGA сигналов (RGBI в формате 4 бита: R, G, B, I)
 assign GPIO_0[3:2] = {pixel[0], pixel[3]}; // R

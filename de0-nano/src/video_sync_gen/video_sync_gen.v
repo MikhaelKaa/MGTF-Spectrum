@@ -3,8 +3,7 @@ module video_sync_gen (
     input wire reset,         // Сброс (активный высокий уровень)
     output reg h_sync,        // Строчный синхроимпульс
     output reg v_sync,        // Кадровый синхроимпульс
-    output reg [10:0] x_pos,  // Текущая координата X (пиксель)
-    output reg [10:0] y_pos,  // Текущая координата Y (строка)
+    output reg [14:0] pix_pos,  // Текущая координата пикселя
     output reg active_video   // Флаг активной зоны изображения
 );
 
@@ -97,21 +96,16 @@ always @(posedge clk or posedge reset) begin
 end
 
 // Вычисление координат пикселя
-always @(posedge clk or posedge reset) begin
+always @(posedge pixel_clock or posedge reset) begin
     if (reset) begin
-        x_pos <= 0;
-        y_pos <= 0;
-    end else if (pixel_clock) begin
-        // Вычисляем координаты только в активной области
-        if (h_counter >= H_SYNC + H_BP && 
-            h_counter < H_SYNC + H_BP + H_ACTIVE &&
-            v_counter >= V_SYNC + V_BP && 
-            v_counter < V_SYNC + V_BP + V_ACTIVE) begin
-            x_pos <= h_counter - (H_SYNC + H_BP);
-            y_pos <= v_counter - (V_SYNC + V_BP);
+        pix_pos <= 0;
+    end else begin
+        if (active_video) begin
+        pix_pos <= pix_pos + 1'b1;
         end else begin
-            x_pos <= 0;
-            y_pos <= 0;
+            if(~v_sync) begin
+                pix_pos <= 0;
+            end
         end
     end
 end

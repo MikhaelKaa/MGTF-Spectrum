@@ -5,8 +5,7 @@ module video_sync_gen_tb;
     reg reset;
     wire h_sync;
     wire v_sync;
-    wire [10:0] x_pos;
-    wire [10:0] y_pos;
+    wire [14:0] pix_pos;
     wire active_video;
     
     // Параметры для проверки
@@ -19,8 +18,7 @@ module video_sync_gen_tb;
         .reset(reset),
         .h_sync(h_sync),
         .v_sync(v_sync),
-        .x_pos(x_pos),
-        .y_pos(y_pos),
+        .pix_pos(pix_pos),
         .active_video(active_video)
     );
     
